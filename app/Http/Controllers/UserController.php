@@ -20,9 +20,9 @@ class UserController extends Controller
 
     public function __construct(MailchimpTransactionalService $mailchimp)
     {
-       
+
         $this->base_url = url('/'); // or config('app.url')
-        
+
         $this->mailchimp = $mailchimp;
     }
     public function user_registration(Request $request)
@@ -39,9 +39,9 @@ class UserController extends Controller
             $socialtype = $request->input('socialtype');
             $deviceToken = $request->input('devicetoken');
             $platform = $request->input('platform');
-    
+
             $loginToken = rand(100000000000, 999999999999999);
-    
+
             $userWithDevice = DB::table('users')->where('device_id', $deviceid)->first();
             $check_user = DB::table('users')
                 ->where('email', $email)
@@ -54,13 +54,13 @@ class UserController extends Controller
             // if($name === 'undefined' || $name = 0 || $name = '0') {
             //         $name = null;
             //     }
-    
+
             if ($versions_current) {
                 if ($check_user) {
-    
+
                     return response()->json(['id' => $check_user->id ?? null, 'msg' => 'User already exists', 'profile_compl_status' => $check_user->profile_compl_status ?? null]);
                 }
-    
+
                 if (!$email) {
                     return response()
                         ->json(['msg' => 'email is required']);
@@ -97,9 +97,9 @@ class UserController extends Controller
                         'login_token' => $loginToken,
                         'platform' => $platform,
                     ]);
-    
+
                 if (empty($userWithDevice) && empty($socialtype)) {
-    
+
                     // User with device already exists, send OTP and update details
                     $randomNumber = rand(1000, 9999);
                     $loginToken = rand(100000000000, 999999999999999);
@@ -116,54 +116,54 @@ class UserController extends Controller
                         'device_id' => $deviceid,
                         'profile_compl_status' => 0
                     ]);
-    
-    
+
+
                     $data = ['name' => $name, 'email' => $email, 'randomNumber' => $randomNumber];
-    
+
                     Mail::send('email_body', ['data' => $data], function ($message) use ($email) {
                         $message->to($email)->subject('Verification Code');
                     });
-    
+
                     // $socialuser = DB::table('users')->where('email', $email)->first();
                     // $id = $socialuser->id;
-    
+
                     return response()->json([
                         // 'id' => $id,
                         'msg' => 'OTP sent to your email',
                         'status' => 0,
                         'email' => $request->input('email'),
-    
+
                     ]);
                 } else {
                     if (!$socialID && !$socialtoken) {
-    
+
                         //  $userWithDevice = '05B2D934-571C-4607-A689-403FB9A0737D';
                         // Register via traditional signup
                         $user = DB::table('users')->where('email', $email)->orWhere('device_id', $deviceid)->first();
-    
-    
-    
+
+
+
                         if ($user) {
                             if ($user->status === 0) {
-    
+
                                 $randomNumber = rand(1000, 9999);
                                 $loginToken = rand(100000000000, 999999999999999);
                                 $otpTime = now();
-    
+
                                 DB::table('users')->where('email', $email)->update(['name' => $name, 'password' => $password, 'otp_token' => $randomNumber, 'otp_time' => $otpTime, 'login_token' => $loginToken, 'platform' => $platform]);
-    
+
                                 $data = ['name' => $name, 'email' => $email, 'randomNumber' => $randomNumber,];
-    
+
                                 Mail::send('email_body', ['data' => $data], function ($message) use ($email) {
                                     $message->to($email)->subject('Verification Code');
                                 });
                                 $socialuser = DB::table('users')->where('email', $email)->orWhere('device_id', $deviceid)->first();
-    
+
                                 $id = $socialuser->id;
                                 // Insert the user into the database
                                 DB::table('users')->where('id', $id)
                                     ->update([
-    
+
                                         'name' => $name,
                                         'email' => $email,
                                         'password' => $password,
@@ -177,29 +177,29 @@ class UserController extends Controller
                                         'login_token' => $loginToken,
                                         'platform' => $platform,
                                     ]);
-    
+
                                 return response()
                                     ->json(['id' => $id, 'msg' => 'OTP sent to your email', 'status' => 0, 'email' => $request->input('email')]);
                             }
                             return response()
                                 ->json(['msg' => 'User already registered with deviceID and active', 'status' => 1, 'email' => $user->email]);
                         }
-    
+
                         // Register a new user via traditional signup
                         $randomNumber = rand(1000, 9999);
                         $loginToken = rand(100000000000, 999999999999999);
                         $otptime = now();
-    
+
                         $data = ['name' => $name, 'email' => $email, 'randomNumber' => $randomNumber,];
-    
+
                         Mail::send('email_body', ['data' => $data], function ($message) use ($email) {
                             $message->to($email)->subject('Verification Code');
                         });
-    
+
                         // Insert the user into the database
                         DB::table('users')
                             ->insert([
-    
+
                                 'name' => $name,
                                 'email' => $email,
                                 'password' => $password,
@@ -215,19 +215,19 @@ class UserController extends Controller
                                 'login_token' => $loginToken,
                                 'platform' => $platform,
                             ]);
-    
+
                         $socialuser = DB::table('users')->where('email', $email)->first();
-    
+
                         return response()->json(['id' => $socialuser->id ?? null, 'msg' => 'OTP sent to your email', 'status' => 0, 'email' => $request->input('email'), 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                     } else {
-    
+
                         // Register via social login when device id or socialid exist
                         $socialuser = DB::table('users')->where('social_id', $socialID)->orWhere('device_id', $deviceid)->first();
                         $socialuseremail = DB::table('users')->where('social_id', $socialID)->orWhere('email', $email)->orWhere('device_id', $deviceid)->first();
-    
-    
+
+
                         if ($socialuser) {
-    
+
                             //   DB::table('users')->where('social_id',$socialID)
                             // ->update([
                             //     'name' => $name, // Add name from social data if available
@@ -246,7 +246,7 @@ class UserController extends Controller
                             // ]);
                             return response()->json(['id' => $socialuser->id ?? null, 'msg' => 'User already exists', 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                         }
-    
+
                         if ($socialuseremail) {
                             return response()->json(['id' => $socialuser->id ?? null, 'msg' => 'User already exists via other authentication', 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                         }
@@ -268,7 +268,7 @@ class UserController extends Controller
                                 'platform' => $platform,
                             ]);
                         $socialuser = DB::table('users')->where('social_id', $socialID)->first();
-    
+
                         return response()
                             ->json(['id' => $socialuser->id ?? null, 'msg' => 'User registered via social login', 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                     }
@@ -307,8 +307,8 @@ class UserController extends Controller
                         'platform' => $platform,
                     ]);
                 if (empty($userWithDevice) && empty($socialtype)) {
-    
-    
+
+
                     // User with device already exists, send OTP and update details
                     $randomNumber = rand(1000, 9999);
                     $loginToken = rand(100000000000, 999999999999999);
@@ -324,54 +324,54 @@ class UserController extends Controller
                         'device_id' => $deviceid,
                         'profile_compl_status' => 0
                     ]);
-    
-    
+
+
                     $data = ['name' => $name, 'email' => $email, 'randomNumber' => $randomNumber];
-    
+
                     Mail::send('email_body', ['data' => $data], function ($message) use ($email) {
                         $message->to($email)->subject('Verification Code');
                     });
-    
+
                     // $socialuser = DB::table('users')->where('email', $email)->first();
                     // $id = $socialuser->id;
-    
+
                     return response()->json([
                         // 'id' => $id,
                         'msg' => 'OTP sent to your email',
                         'status' => 0,
                         'email' => $request->input('email'),
-    
+
                     ]);
                 } else {
                     if (!$socialID && !$socialtoken) {
-    
+
                         //  $userWithDevice = '05B2D934-571C-4607-A689-403FB9A0737D';
                         // Register via traditional signup
                         $user = DB::table('users')->where('email', $email)->orWhere('device_id', $deviceid)->first();
-    
-    
-    
+
+
+
                         if ($user) {
                             if ($user->status === 0) {
-    
+
                                 $randomNumber = rand(1000, 9999);
                                 $loginToken = rand(100000000000, 999999999999999);
                                 $otpTime = now();
-    
+
                                 DB::table('users')->where('email', $email)->update(['name' => $name, 'password' => $password, 'otp_token' => $randomNumber, 'otp_time' => $otpTime, 'login_token' => $loginToken, 'platform' => $platform]);
-    
+
                                 $data = ['name' => $name, 'email' => $email, 'randomNumber' => $randomNumber,];
-    
+
                                 Mail::send('email_body', ['data' => $data], function ($message) use ($email) {
                                     $message->to($email)->subject('Verification Code');
                                 });
                                 $socialuser = DB::table('users')->where('email', $email)->orWhere('device_id', $deviceid)->first();
-    
+
                                 $id = $socialuser->id;
                                 // Insert the user into the database
                                 DB::table('users')->where('id', $id)
                                     ->update([
-    
+
                                         'name' => $name,
                                         'email' => $email,
                                         'password' => $password,
@@ -385,29 +385,29 @@ class UserController extends Controller
                                         'login_token' => $loginToken,
                                         'platform' => $platform,
                                     ]);
-    
+
                                 return response()
                                     ->json(['id' => $id, 'msg' => 'OTP sent to your email', 'status' => 0, 'email' => $request->input('email')]);
                             }
                             return response()
                                 ->json(['msg' => 'User already registered with deviceID and active', 'status' => 1, 'email' => $user->email]);
                         }
-    
+
                         // Register a new user via traditional signup
                         $randomNumber = rand(1000, 9999);
                         $loginToken = rand(100000000000, 999999999999999);
                         $otptime = now();
-    
+
                         $data = ['name' => $name, 'email' => $email, 'randomNumber' => $randomNumber,];
-    
+
                         Mail::send('email_body', ['data' => $data], function ($message) use ($email) {
                             $message->to($email)->subject('Verification Code');
                         });
-    
+
                         // Insert the user into the database
                         DB::table('users')
                             ->insert([
-    
+
                                 'name' => $name,
                                 'email' => $email,
                                 'password' => $password,
@@ -423,19 +423,19 @@ class UserController extends Controller
                                 'login_token' => $loginToken,
                                 'platform' => $platform,
                             ]);
-    
+
                         $socialuser = DB::table('users')->where('email', $email)->first();
-    
+
                         return response()->json(['id' => $socialuser->id ?? null, 'msg' => 'OTP sent to your email', 'status' => 0, 'email' => $request->input('email'), 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                     } else {
-    
+
                         // Register via social login when device id or socialid exist
                         $socialuser = DB::table('users')->where('social_id', $socialID)->orWhere('device_id', $deviceid)->first();
                         $socialuseremail = DB::table('users')->where('social_id', $socialID)->orWhere('email', $email)->orWhere('device_id', $deviceid)->first();
-    
-    
+
+
                         if ($socialuser) {
-    
+
                             //   DB::table('users')->where('device_id',$deviceid)
                             // ->update([
                             //     'name' => $name, // Add name from social data if available
@@ -454,7 +454,7 @@ class UserController extends Controller
                             // ]);
                             return response()->json(['id' => $socialuser->id ?? null, 'msg' => 'User already exists', 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                         }
-    
+
                         if ($socialuseremail) {
                             return response()->json(['id' => $socialuser->id ?? null, 'msg' => 'User already exists via other authentication', 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                         }
@@ -476,7 +476,7 @@ class UserController extends Controller
                                 'platform' => $platform,
                             ]);
                         $socialuser = DB::table('users')->where('social_id', $socialID)->first();
-    
+
                         return response()
                             ->json(['id' => $socialuser->id ?? null, 'msg' => 'User registered via social login', 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                     }
@@ -515,8 +515,8 @@ class UserController extends Controller
                         'platform' => $platform,
                     ]);
                 if (empty($userWithDevice) && empty($socialtype)) {
-    
-    
+
+
                     // User with device already exists, send OTP and update details
                     $randomNumber = rand(1000, 9999);
                     $loginToken = rand(100000000000, 999999999999999);
@@ -532,54 +532,54 @@ class UserController extends Controller
                         'device_id' => $deviceid,
                         'profile_compl_status' => 0
                     ]);
-    
-    
+
+
                     $data = ['name' => $name, 'email' => $email, 'randomNumber' => $randomNumber];
-    
+
                     Mail::send('email_body', ['data' => $data], function ($message) use ($email) {
                         $message->to($email)->subject('Verification Code');
                     });
-    
+
                     // $socialuser = DB::table('users')->where('email', $email)->first();
                     // $id = $socialuser->id;
-    
+
                     return response()->json([
                         // 'id' => $id,
                         'msg' => 'OTP sent to your email',
                         'status' => 0,
                         'email' => $request->input('email'),
-    
+
                     ]);
                 } else {
                     if (!$socialID && !$socialtoken) {
-    
+
                         //  $userWithDevice = '05B2D934-571C-4607-A689-403FB9A0737D';
                         // Register via traditional signup
                         $user = DB::table('users')->where('email', $email)->orWhere('device_id', $deviceid)->first();
-    
-    
-    
+
+
+
                         if ($user) {
                             if ($user->status === 0) {
-    
+
                                 $randomNumber = rand(1000, 9999);
                                 $loginToken = rand(100000000000, 999999999999999);
                                 $otpTime = now();
-    
+
                                 DB::table('users')->where('email', $email)->update(['name' => $name, 'password' => $password, 'otp_token' => $randomNumber, 'otp_time' => $otpTime, 'login_token' => $loginToken, 'platform' => $platform]);
-    
+
                                 $data = ['name' => $name, 'email' => $email, 'randomNumber' => $randomNumber,];
-    
+
                                 Mail::send('email_body', ['data' => $data], function ($message) use ($email) {
                                     $message->to($email)->subject('Verification Code');
                                 });
                                 $socialuser = DB::table('users')->where('email', $email)->orWhere('device_id', $deviceid)->first();
-    
+
                                 $id = $socialuser->id;
                                 // Insert the user into the database
                                 DB::table('users')->where('id', $id)
                                     ->update([
-    
+
                                         'name' => $name,
                                         'email' => $email,
                                         'password' => $password,
@@ -592,29 +592,29 @@ class UserController extends Controller
                                         'login_token' => $loginToken,
                                         'platform' => $platform,
                                     ]);
-    
+
                                 return response()
                                     ->json(['id' => $id, 'msg' => 'OTP sent to your email', 'status' => 0, 'email' => $request->input('email')]);
                             }
                             return response()
                                 ->json(['msg' => 'User already registered and active', 'status' => 1]);
                         }
-    
+
                         // Register a new user via traditional signup
                         $randomNumber = rand(1000, 9999);
                         $loginToken = rand(100000000000, 999999999999999);
                         $otptime = now();
-    
+
                         $data = ['name' => $name, 'email' => $email, 'randomNumber' => $randomNumber,];
-    
+
                         Mail::send('email_body', ['data' => $data], function ($message) use ($email) {
                             $message->to($email)->subject('Verification Code');
                         });
-    
+
                         // Insert the user into the database
                         DB::table('users')
                             ->insert([
-    
+
                                 'name' => $name,
                                 'email' => $email,
                                 'password' => $password,
@@ -628,19 +628,19 @@ class UserController extends Controller
                                 'login_token' => $loginToken,
                                 'platform' => $platform,
                             ]);
-    
+
                         $socialuser = DB::table('users')->where('email', $email)->first();
-    
+
                         return response()->json(['id' => $socialuser->id ?? null, 'msg' => 'OTP sent to your email', 'status' => 0, 'email' => $request->input('email'), 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                     } else {
-    
+
                         // Register via social login when device id or socialid exist
                         $socialuser = DB::table('users')->where('social_id', $socialID)->orWhere('device_id', $deviceid)->first();
                         $socialuseremail = DB::table('users')->where('social_id', $socialID)->orWhere('email', $email)->orWhere('device_id', $deviceid)->first();
-    
-    
+
+
                         if ($socialuser) {
-    
+
                             //   DB::table('users')->where('device_id',$deviceid)
                             // ->update([
                             //     'name' => $name, // Add name from social data if available
@@ -659,7 +659,7 @@ class UserController extends Controller
                             // ]);
                             return response()->json(['id' => $socialuser->id ?? null, 'msg' => 'User already exists', 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                         }
-    
+
                         if ($socialuseremail) {
                             return response()->json(['id' => $socialuser->id ?? null, 'msg' => 'User already exists via other authentication', 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                         }
@@ -681,7 +681,7 @@ class UserController extends Controller
                                 'platform' => $platform,
                             ]);
                         $socialuser = DB::table('users')->where('social_id', $socialID)->first();
-    
+
                         return response()
                             ->json(['id' => $socialuser->id ?? null, 'msg' => 'User registered via social login', 'profile_compl_status' => $socialuser->profile_compl_status ?? null]);
                     }
@@ -689,7 +689,7 @@ class UserController extends Controller
             } else {
                 return response()->json([
                     'msg' => 'Please update the app to the latest version.'
-    
+
                 ]);
             }
 
@@ -1534,17 +1534,17 @@ class UserController extends Controller
                 return response()->json(['error' => 'User not found or gender not specified']);
             }
         } elseif ($versions_middle) {
-         
+
             if ($user && $user->gender) {
                 $mindsetworkout = DB::table('workout_mindset')->select('*')->get();
-                
-                
+
+
                 $mindsetworkout = $mindsetworkout->map(function ($workout) {
                             $workout->workout_mindset_image_link =  $this->base_url . '/images/'.$workout->workout_mindset_image;
                             return $workout;
                         });
-                
-                
+
+
                 // dd($mindsetworkout);
 
                 $workoutdetails = DB::table('workouts')
@@ -3141,7 +3141,7 @@ class UserController extends Controller
                 ->where('id', $id)
                 ->where('type',$type)
                 ->first();
-                
+
             if ($status) {
                 if ($status->exercise_status == 'undone') {
                     // dd('undone');
@@ -3711,13 +3711,13 @@ class UserController extends Controller
 
     public function deleteAccount(Request $request)
     {
-   
+
         $email_id = $request->input('email');
         $id = $request->input('id');
-        
+
        if ($id) {
             $userData = DB::table("users")->where('id', $id)->first();
-        
+
             if ($userData) {
                 DB::table('deleted_account')->insert([
                     'employee_id' => $id,
@@ -3726,28 +3726,28 @@ class UserController extends Controller
                 ]);
             }
        }
-        
+
 
         if($email_id){
            $password = $request->input('password');
-          
+
         $check_email =  DB::table('users')->where('email',$email_id)->first();
         if($check_email){
              $check_password =  DB::table('users')->where('email',$email_id)->where('password',$password)->first();
              if(!$check_password){
                    return response()->json(['data' => 'Wrong Password']);
              }
-            
-            
+
+
              $deleteAccount = DB::table('users')
             ->where('email', $email_id)
             ->delete();
 
        return response()->json(['data' => 'Account Successfully deleted']);
         }
-    
+
       return response()->json(['data' => "your email id doesn't exist"]);
-            
+
         }
         $deleteAccount = DB::table('users')
             ->where('id', $id)
@@ -3755,7 +3755,7 @@ class UserController extends Controller
 
         return response()->json(['data' => 'Account Successfully deleted']);
     }
-    
+
     public function like_dislike(Request $request)
     {
         $user_id = $request->input('user_id');
@@ -3861,7 +3861,7 @@ class UserController extends Controller
         $versions_past = DB::table('versions')->where('versions', $version)->where('type', 'past')->first();
 
         if ($versions_current) {
-            
+
             // -11 or -12 used for focus area or categories
 
             if ($day == -11 || $day == -12) {
@@ -3897,7 +3897,7 @@ class UserController extends Controller
 
             ]);
         } elseif ($versions_middle) {
-            
+
               if ($day == -11 || $day == -12) {
                 $currentDate = Carbon::now()->toDateString();
                 $check_data = DB::table('user_exercise_complete_status')
@@ -4022,21 +4022,21 @@ class UserController extends Controller
         // }
 
     }
-    
+
     public function music_details()
     {
-        
+
       $music = DB::table('music')
             ->select('title','music_file','type')
             ->get();
-            
+
         return response()->json($music);
-        
+
     }
     public function deleteGoogleAccount(Request $request)
     {
-        
-       
+
+
           $email_id = $request->input('email');
 
             $user = DB::table('users')->where('email', $email_id)->first();
@@ -4046,7 +4046,7 @@ class UserController extends Controller
                     'data' => "your email id doesn't exist"
                 ]);
             }
-      
+
             if ($user->social_type != 'google') {
                 return response()->json([
                     // 'success' => false,
@@ -4058,15 +4058,15 @@ class UserController extends Controller
                 ->where('email', $email_id)
                 ->where('social_type', 'google')
                 ->delete();
-        
+
             return response()->json([
                 // 'success' => true,
                 'data' => 'Account successfully deleted'
             ]);
-    
+
     }
-    
-    
+
+
     public function loginnew(Request $request)
     {
             $email = $request->input('email');
@@ -4074,16 +4074,16 @@ class UserController extends Controller
             $device_id = $request->input('device_id');
             $platform = $request->input('platform');
             $loginToken = rand(100000000000, 999999999999999);
-            
+
             $version = $request->input('version');
-            
+
             if (empty($email) || empty($name) || empty($platform) || empty($version)) {
                 return response()->json([
                     'status' => false,
                     'message' => 'All fields (email, name, platform, version) are required.'
                 ]);
             }
-            
+
             if ($email == "undefined" || $email === '0' || $email === 0 || empty($email)) {
                       return response()->json([
                         'status' => false,
@@ -4091,34 +4091,34 @@ class UserController extends Controller
                     ]);
                     }
 
-        
+
             $check_user = DB::table('users')
                 ->where('email', $email)
                 ->where('device_id', $device_id)
                 ->first();
-               
-        
+
+
             $check_registration_status = DB::table('users')
                 ->where('email', $email)
                 ->where('device_id', $device_id)
                 ->where('profile_compl_status', 1)
                 ->first();
-              
+
             $term =  false;
-            
-        
+
+
             $userWithDevice = DB::table('users')->where('device_id', $device_id)->first();
             $userWithEmail = DB::table('users')->where('email', $email)->first();
-            
+
             // $devicecount = DB::table('users')->where('device_id', $device_id)->count();
             // $emailcount = DB::table('users')->where('email', $email)->count();
             // dd($devicecount);
-            
+
                 $diff_user_id = DB::table("users")
                     ->where("device_id", $device_id)
                     ->where("email", "!=", $email)
                     ->first();
-                
+
                 if ($diff_user_id) {
                      return response()->json([
                         'status' => true,
@@ -4127,31 +4127,31 @@ class UserController extends Controller
                         'message' => 'this email is allrady register with another device ',
                         'term'=>$term
                     ]);
-                    
-                } 
-            
-        
+
+                }
+
+
             // Check for version information
             $versions_current = DB::table('versions')->where('versions', $version)->where('type', 'current')->first();
             $versions_middle = DB::table('versions')->where('versions', $version)->where('type', 'middle')->first();
             $versions_past = DB::table('versions')->where('versions', $version)->where('type', 'past')->first();
-        
+
             // Fix incorrect assignments
             if ($name === 'undefined' || $name == 0 || $name == '0') {
                 $name = null;
             }
-        
+
             if ($versions_current) {
-              
+
                 $check_data = DB::table('users')
                     ->where(function ($query) use ($email, $device_id) {
                         $query->where('email', $email)
                               ->orWhere('device_id', $device_id);
                     })
                     ->first();
-                   
-                    
-                    
+
+
+
                 if(!$check_data){
                     $data = DB::table('users')->insertGetId([
                         'name'      => $name,
@@ -4160,7 +4160,7 @@ class UserController extends Controller
                         'device_id' => $device_id,
                         'platform'  => $platform,
                     ]);
-                         
+
                       return response()->json([
                         'status' => true,
                         'allcompleted' => false,
@@ -4168,31 +4168,31 @@ class UserController extends Controller
                         'message' => 'new user created',
                         'term'=>$term
                     ]);
-                    
+
                 }
-                
+
                 $check_user = DB::table('users')
                 ->where('email', $email)
                 ->where('device_id', $device_id)
                 ->first();
-                
+
                 $check_registration_status = DB::table('users')
                     ->where('email', $email)
                     ->where('device_id', $device_id)
                     ->where('profile_compl_status', 1)
                     ->first();
-                
+
                     $term =  true;
                 if ($check_registration_status) {
                     if($check_registration_status->term_and_conditions=='Accepted'){
-                        
+
                          DB::table('users')
                         ->where('email', $email)
                         ->where('device_id', $device_id)
                         ->update([
                               'login_token' => $loginToken,
                            ]);
-                           
+
                           return response()->json([
                             'status' => true,
                             'allcompleted' => true,
@@ -4200,9 +4200,9 @@ class UserController extends Controller
                             'message' => 'You are logged in',
                             'term'=>$term
                         ]);
-                        
+
                     }
-                  
+
                 } elseif ($check_user) {
                     return response()->json([
                         'status' => true,
@@ -4212,29 +4212,29 @@ class UserController extends Controller
                         'term'=>$term
                     ]);
                 } elseif ($userWithDevice || $userWithEmail) {
-                   
+
                     if ($check_data) {
-                        
+
                         if (!$userWithDevice) {
-                            
+
                            $data = DB::table('users')->where('email', $email)->update([
                                 'device_id' => $device_id
                             ]);
                         }
                         if (!$userWithEmail) {
-                        
+
                            $data = DB::table('users')->where('device_id', $device_id)->update([
                                 'email' => $email
                             ]);
                         }
-                    
-                          
+
+
                     $check_status= DB::table('users')
                         ->where('email', $email)
                         ->where('device_id', $device_id)
                         ->first();
-                       
-                        
+
+
                         if($check_status->profile_compl_status==0){
                             return response()->json([
                             'status' => true,
@@ -4243,27 +4243,27 @@ class UserController extends Controller
                             'message' => 'Profile completion status is 0',
                             'term'=>$term
                         ]);
-                        
-                    }    
-                    
+
+                    }
+
                           DB::table('users')
                                 ->where('email', $email)
                                 ->where('device_id', $device_id)
                                 ->update([
                                       'login_token' => $loginToken,
                            ]);
-                        
+
                           return response()->json([
                             'status' => true,
                             'allcompleted' => true,
                             'user_id'=>$check_status->id,
                             'message' => 'You are logged in',
                             'term'=>$term
-                            
+
                           ]);
                     }
                 }
-        
+
              if($versions_middle) {
                  return response()->json([
                 'status' => false,
@@ -4271,7 +4271,7 @@ class UserController extends Controller
                 'message' => 'Invalid request or version not found'
                 ]);
              }
-            
+
              if ($versions_past) {
                  return response()->json([
                 'status' => false,
@@ -4279,17 +4279,17 @@ class UserController extends Controller
                 'message' => 'Invalid request or version not found'
                  ]);
             }
-        
+
             return response()->json([
                 'status' => false,
                 'message' => 'Invalid request or version not found'
             ]);
                 }
     }
-    
+
     public function update_email(Request $request)
     {
-        
+
         $old_email = $request->input('old_email');
         $new_email = $request->input('new_email');
         $device_id = $request->input('device_id');
@@ -4298,34 +4298,34 @@ class UserController extends Controller
         $versions_current = DB::table('versions')->where('versions', $version)->where('type', 'current')->first();
         $versions_middle = DB::table('versions')->where('versions', $version)->where('type', 'middle')->first();
         $versions_past = DB::table('versions')->where('versions', $version)->where('type', 'past')->first();
-        
-        
+
+
         if($versions_current){
-            
+
             $email_exist = DB::table("users") ->where('email', $new_email)->first();
-           
+
            if($email_exist){
               return response()->json([
                 'status' => true,
                 'message' => 'This id already exist',
                 'success' =>false
             ]);
-               
+
            }
-           
+
             DB::table("users")->where('email', $old_email)->where('device_id', $device_id)->update([
                 'email' => $new_email,
                 'name' =>$name,
               ]);
-                    
+
                 return response()->json([
                     'status' => true,
                     'message' =>'email updated',
                     'success' =>true
                 ]);
-            
+
         }
-        
+
           if($versions_middle) {
                  return response()->json([
                 'status' => false,
@@ -4333,7 +4333,7 @@ class UserController extends Controller
                 'message' => 'Invalid request or version not found'
                 ]);
              }
-            
+
              if ($versions_past) {
                  return response()->json([
                 'status' => false,
@@ -4341,17 +4341,17 @@ class UserController extends Controller
                 'message' => 'Invalid request or version not found'
                  ]);
             }
-        
-            
+
+
           return response()->json([
                     'message' => 'Please update the app to the latest version.'
                 ]);
-           
+
     }
-    
+
     public function withoutevent_cardio_status(Request $request)
     {
-      
+
             $user_id = $request->input('user_id');
             $type = $request->input('type');
             if(empty($user_id)){
@@ -4375,7 +4375,7 @@ class UserController extends Controller
                     'status'=>false,
                 ]);
             }
-                
+
             $indiaTime = Carbon::now()->setTimezone('Asia/Kolkata');
             $currentDay = $indiaTime->format('l');
             $check_status = DB::table('user_exercise_complete_status')
@@ -4384,7 +4384,7 @@ class UserController extends Controller
                 ->where('exercise_status','undone')
                 ->where('type',$type)
                 ->first();
-                
+
             if(!$check_status){
                 $status = true;
                 $message = "all exercise are completed";
@@ -4392,11 +4392,17 @@ class UserController extends Controller
                  $status = false;
                  $message = "exercise are not completed";
             }
-           
+
             return response()->json([
                 'status' => $status,
                 'message'=>$message,
             ]);
-    
+
         }
+        public function get_categorie_diet()
+{
+    return response()->json([
+        'message' => 'Método get_categorie_diet funcionando correctamente'
+    ]);
+}
 }
